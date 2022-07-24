@@ -10,5 +10,5 @@ Automation role for SSM to be used to provision Windows Golden AMIs
 
 - If you are not using the default vpc, must provide the subnet id and a security group so that instance can launch accordingly.
 - A S3 bucket for storing assets shall be created automatically. It will hold any binaries/ insatllers/ config files that you will upload as part of process
-- Do create a local folder and replace plath in TF scripts to get binaries uploaded to assets S3 bucket
+- Do create a local folder and replace path in TF scripts to get binaries uploaded to assets S3 bucket
 
