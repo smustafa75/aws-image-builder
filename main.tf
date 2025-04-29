@@ -6,7 +6,7 @@ module "networking" {
   account_id     = data.aws_caller_identity.current.account_id
   partition_info = data.aws_partition.current.partition
   s3_log_bucket  = module.inst_roles.log_bucket
-  #tags   = var.tags
+  tags           = local.common_tags
 }
 
 module "inst_roles" {
@@ -14,6 +14,7 @@ module "inst_roles" {
   region_info    = data.aws_region.current.name
   account_id     = data.aws_caller_identity.current.account_id
   partition_info = data.aws_partition.current.partition
+  tags           = local.common_tags
 }
 
 module "imgbldr" {
@@ -27,7 +28,7 @@ module "imgbldr" {
   sec_grp        = module.networking.sg
   logging_bucket = module.inst_roles.log_bucket_imgbldr
   asset_bucket   = module.inst_roles.asset_bucket
-  #  kms_key = data.aws_kms_key.img_bldr_key.arn
-  #  kms_key_ebs = data.aws_kms_key.ebs_key.arn
-  #tags   = var.tags
+  kms_key        = data.aws_kms_key.img_bldr_key.arn
+  kms_key_ebs    = data.aws_kms_key.ebs_key.arn
+  tags           = local.common_tags
 }

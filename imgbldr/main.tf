@@ -1,17 +1,17 @@
 resource "aws_imagebuilder_image_recipe" "Recipe_01" {
 
   name         = "WindowsServer2019"
-  parent_image ="YOUR_BASE_WINDOWS_AMI"
+  parent_image = data.aws_ami.windows_2019.id
   working_directory= "C:\\"
   block_device_mapping {
     device_name = "/dev/sda1"
     no_device = false
     ebs {
       delete_on_termination ="true"
-      encrypted = "false"
+      encrypted = "true"
       volume_size = 50
-      volume_type = "gp2"
-      #kms_key_id = var.kms_key_ebs
+      volume_type = "gp3"
+      kms_key_id = var.kms_key_ebs
 
     }
   }
@@ -66,23 +66,26 @@ component {
 resource "aws_s3_object" "awscli"{
   bucket = var.asset_bucket
   key = "AWSCLIV2.msi"
-  source ="C:\\Users\\smustafa\\locals\\img-bldr-installer\\AWSCLIV2.msi"
-  etag =filemd5("C:\\Users\\smustafa\\locals\\img-bldr-installer\\AWSCLIV2.msi")
+  source = "${path.module}/../installers/placeholder.txt"
+  etag = filemd5("${path.module}/../installers/placeholder.txt")
+  tags = var.tags
 }
 
 
 resource "aws_s3_object" "kinesis_config"{
   bucket = var.asset_bucket
   key = "appsettings.json"
-  source ="C:\\Users\\smustafa\\locals\\img-bldr-installer\\appsettings.json"
-  etag =filemd5("C:\\Users\\smustafa\\locals\\img-bldr-installer\\appsettings.json")
+  source = "${path.module}/../installers/placeholder.txt"
+  etag = filemd5("${path.module}/../installers/placeholder.txt")
+  tags = var.tags
 }
 
 resource "aws_s3_object" "newrelic_app"{
   bucket = var.asset_bucket
   key = "newrelic-infra.msi"
-  source ="C:\\Users\\smustafa\\locals\\img-bldr-installer\\newrelic-infra.msi"
-  etag =filemd5("C:\\Users\\smustafa\\locals\\img-bldr-installer\\newrelic-infra.msi")
+  source = "${path.module}/../installers/placeholder.txt"
+  etag = filemd5("${path.module}/../installers/placeholder.txt")
+  tags = var.tags
 }
 
 resource "aws_imagebuilder_image_pipeline" "Pipeline_x" {
@@ -92,83 +95,96 @@ resource "aws_imagebuilder_image_pipeline" "Pipeline_x" {
   distribution_configuration_arn =aws_imagebuilder_distribution_configuration.W2K19_distro.arn
 
   image_tests_configuration {
-    image_tests_enabled ="false"
+    image_tests_enabled ="true"
     timeout_minutes = 720
   }
 
- # schedule {
- #   schedule_expression = "cron(0 0 * * ? *)"
- # }
+  schedule {
+    schedule_expression = "cron(0 0 1 * ? *)"  # Run monthly on the 1st at midnight
+    pipeline_execution_start_condition = "EXPRESSION_MATCH_AND_DEPENDENCY_UPDATES_AVAILABLE"
+  }
 }
 
 resource "aws_imagebuilder_image_pipeline" "Pipeline_02" {
   image_recipe_arn                 = aws_imagebuilder_image_recipe.Recipe_01.arn
- infrastructure_configuration_arn = aws_imagebuilder_infrastructure_configuration.Config_02.arn
+  infrastructure_configuration_arn = aws_imagebuilder_infrastructure_configuration.Config_02.arn
   name                             = "W2K19Pipelines"
-  distribution_configuration_arn =aws_imagebuilder_distribution_configuration.W2K19_distro.arn
+  distribution_configuration_arn   = aws_imagebuilder_distribution_configuration.W2K19_distro.arn
 
   image_tests_configuration {
-    image_tests_enabled ="false"
+    image_tests_enabled = "true"
     timeout_minutes = 720
   }
 
- # schedule {
- #   schedule_expression = "cron(0 0 * * ? *)"
- # }
+  schedule {
+    schedule_expression = "cron(0 0 15 * ? *)"  # Run monthly on the 15th at midnight
+    pipeline_execution_start_condition = "EXPRESSION_MATCH_AND_DEPENDENCY_UPDATES_AVAILABLE"
+  }
 }
 resource "aws_imagebuilder_infrastructure_configuration" "Config_01" {
   name                          = "W2K19Config"
-  description                   = "1st configuration"
+  description                   = "Primary configuration for Windows Server 2019 image building"
   instance_profile_name         = var.inst_profile
-  instance_types                = ["t2.large"]
-  security_group_ids =var.sec_grp
-  subnet_id = var.subnet_id
+  instance_types                = ["t3.large"]
+  security_group_ids            = var.sec_grp
+  subnet_id                     = var.subnet_id
   terminate_instance_on_failure = false
+  
   logging {
     s3_logs {
       s3_bucket_name = var.logging_bucket
       s3_key_prefix  = "logs"
     }
   }
-  #key_pair                      = aws_key_pair.example.key_name
   
-  #sns_topic_arn                 = aws_sns_topic.example.arn
-  
- # tags = {
- #   foo = "bar"
- # }
+  tags = var.tags
 }
 
 
 resource "aws_imagebuilder_infrastructure_configuration" "Config_02" {
   name                          = "W2K19Config02"
-  description                   = "1st configuration"
+  description                   = "Secondary configuration for Windows Server 2019 image building"
   instance_profile_name         = var.inst_profile
-  instance_types                = ["t2.large"]
-  key_pair = "img-bldr-key"
-  security_group_ids =var.sec_grp
-  subnet_id = var.p_subnet_id
+  instance_types                = ["t3.large"]
+  key_pair                      = "img-bldr-key"
+  security_group_ids            = var.sec_grp
+  subnet_id                     = var.p_subnet_id
   terminate_instance_on_failure = false
+  
   logging {
     s3_logs {
       s3_bucket_name = var.logging_bucket
       s3_key_prefix  = "logs"
     }
   }
+  
+  tags = var.tags
 }
 resource "aws_imagebuilder_distribution_configuration" "W2K19_distro" {
   name = "w2k19distribution"
   
-
   distribution {
     region = var.region_info
     ami_distribution_configuration {
-      #name ="Build-01"
-      #name = "WinodwsServer-{{ imagebuilder:buildDate }}"
-      #target_account_ids = [ "xxxxxxx" , "xxxxxxx", "xxxxxxx", ]
+      name = "WindowsServer2019-{{ imagebuilder:buildDate }}"
+      # Uncomment and add your target account IDs for cross-account distribution
+      # target_account_ids = ["123456789012", "098765432109"]
       
+      # Configure AMI sharing settings
+      ami_tags = {
+        Name        = "WindowsServer2019-Golden-AMI"
+        Environment = "Production"
+        CreatedBy   = "ImageBuilder"
+        BuildDate   = "{{ imagebuilder:buildDate }}"
+      }
+      
+      # Configure launch permissions
+      launch_permission {
+        # Uncomment to allow specific accounts to launch instances from this AMI
+        # account_ids = ["123456789012", "098765432109"]
+      }
+    }
   }
-}
 }  
 
 resource "aws_imagebuilder_component" "update_os" {

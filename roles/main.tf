@@ -10,8 +10,6 @@ resource "aws_iam_role" "ssm_automation_role" {
     "arn:${var.partition_info}:iam::aws:policy/EC2InstanceProfileForImageBuilder",
     "arn:${var.partition_info}:iam::aws:policy/AWSImageBuilderFullAccess",
     "arn:${var.partition_info}:iam::aws:policy/EC2InstanceProfileForImageBuilderECRContainerBuilds"
-
-
   ]
 
   inline_policy {
@@ -500,9 +498,12 @@ resource "aws_s3_bucket" "image-builder-bucket" {
     acl ="private"
     force_destroy = true
 
-    tags = {
+    tags = merge(
+      {
         Name = "S3 Bucket for Image Builder"
-    }
+      },
+      var.tags
+    )
 }
 
 resource "aws_s3_bucket" "image-builder-logs" {
@@ -510,7 +511,10 @@ resource "aws_s3_bucket" "image-builder-logs" {
   acl           = "private"
   force_destroy = true
 
-  tags = {
-    Name = "S3 Bucket for Image Builder logs"
-  }
+  tags = merge(
+    {
+      Name = "S3 Bucket for Image Builder logs"
+    },
+    var.tags
+  )
 }

@@ -1,0 +1,8 @@
+This directory is for installer files that will be uploaded to S3.
+
+Required files:
+1. AWSCLIV2.msi - AWS CLI installer
+2. appsettings.json - Kinesis configuration file
+3. newrelic-infra.msi - NewRelic agent installer
+
+Please place these files in this directory before running Terraform.
