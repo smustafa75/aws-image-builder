@@ -5,6 +5,8 @@
  .tfstate files
 *.tfstate
 *.tfstate.*
+*.exe
+*.msi
 
 # Crash log files
 #crash.log
